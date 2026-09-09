@@ -1,0 +1,264 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: neurotrust
+      POSTGRES_PASSWORD: neurotrust
+      POSTGRES_DB: neurotrust
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neurotrust"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  agent_registry:
+    build:
+      context: .
+      dockerfile: services/agent_registry/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8001:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  cdt_service:
+    build:
+      context: .
+      dockerfile: services/cdt_service/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8002:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  behavior_analysis:
+    build:
+      context: .
+      dockerfile: services/behavior_analysis/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8003:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  trust_prediction:
+    build:
+      context: .
+      dockerfile: services/trust_prediction/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8004:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  decision_engine:
+    build:
+      context: .
+      dockerfile: services/decision_engine/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8005:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  anomaly_detection:
+    build:
+      context: .
+      dockerfile: services/anomaly_detection/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8007:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  federated_learning:
+    build:
+      context: .
+      dockerfile: services/federated_learning/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8010:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      anomaly_detection:
+        condition: service_started
+
+  collusion_detection:
+    build:
+      context: .
+      dockerfile: services/collusion_detection/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8009:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  trust_forecast:
+    build:
+      context: .
+      dockerfile: services/trust_forecast/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8008:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  security_monitoring:
+    build:
+      context: .
+      dockerfile: services/security_monitoring/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POSTGRES_DSN: postgresql+asyncpg://neurotrust:neurotrust@postgres:5432/neurotrust
+    ports:
+      - "8006:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  agent_isolation:
+    build:
+      context: .
+      dockerfile: services/agent_isolation/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8012:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      agent_registry:
+        condition: service_started
+
+  leader_reassignment:
+    build:
+      context: .
+      dockerfile: services/leader_reassignment/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      agent_registry:
+        condition: service_started
+
+  task_redistribution:
+    build:
+      context: .
+      dockerfile: services/task_redistribution/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      agent_registry:
+        condition: service_started
+
+  mesa_sim:
+    build:
+      context: .
+      dockerfile: simulation/mesa_sim/Dockerfile
+    restart: on-failure:5
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      N_WORKERS: "5"
+      FAULTY_AGENT_IDS: "agent-worker-0"
+      FAULT_INJECTION_DELAY_S: "60"
+      COLLUDING_AGENT_IDS: "agent-worker-2,agent-worker-3"
+      COLLUSION_DELAY_S: "60"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      agent_registry:
+        condition: service_started
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: services/dashboard/Dockerfile
+    restart: on-failure:5
+    ports:
+      - "8000:8000"
+    depends_on:
+      agent_registry:
+        condition: service_started
+
+  api_gateway:
+    build:
+      context: .
+      dockerfile: services/api_gateway/Dockerfile
+    restart: on-failure:5
+    ports:
+      - "8011:8000"
+    depends_on:
+      agent_registry:
+        condition: service_started
+
+volumes:
+  pgdata:

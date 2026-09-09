@@ -1,0 +1,6 @@
+-e /libs/neurotrust_common
+fastapi>=0.111
+uvicorn[standard]>=0.30
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+scikit-learn>=1.4

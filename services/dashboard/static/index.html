@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NeuroTrust Mesh</title>
+<style>
+  :root {
+    --bg: #0a0d13;
+    --bg-elevated: #10141d;
+    --card: #131824;
+    --card-border: #212838;
+    --text: #e7ebf3;
+    --text-dim: #8a93a6;
+    --text-faint: #5c6478;
+    --accent: #35e0c9;
+    --accent-dim: #1c8f80;
+    --green: #34d399;
+    --red: #f9697a;
+    --amber: #fbbf6a;
+    --purple: #b39dfb;
+    --blue: #6fb3fb;
+    --radius: 12px;
+    --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  body { min-height: 100vh; padding: 28px 32px 60px; }
+
+  .topbar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand h1 {
+    font-size: 20px;
+    font-weight: 650;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .brand .sub { color: var(--text-faint); font-size: 13px; }
+
+  .status-line { color: var(--text-faint); font-size: 12px; font-family: var(--mono); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .stat .label { color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat .value { font-size: 24px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .value.green { color: var(--green); }
+  .stat .value.red { color: var(--red); }
+  .stat .value.accent { color: var(--accent); }
+
+  h2.section {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-faint);
+    margin: 34px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2.section::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--card-border);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    transition: border-color 0.2s ease;
+  }
+  .card.isolated { border-color: rgba(249, 105, 122, 0.4); }
+
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .agent-id { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+  .badges { display: flex; gap: 6px; }
+
+  .badge {
+    font-size: 10.5px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .badge.leader { background: rgba(179, 157, 251, 0.15); color: var(--purple); }
+  .badge.worker { background: rgba(138, 147, 166, 0.15); color: var(--text-dim); }
+  .badge.active { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+  .badge.isolated { background: rgba(249, 105, 122, 0.15); color: var(--red); }
+
+  .metric-row { display: flex; align-items: center; gap: 10px; margin: 9px 0; }
+  .metric-label {
+    width: 68px; flex-shrink: 0;
+    color: var(--text-faint); font-size: 11.5px;
+  }
+  .bar-track {
+    flex: 1; height: 6px; border-radius: 4px;
+    background: #1b2130; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .bar-fill.trust { background: linear-gradient(90deg, var(--accent-dim), var(--accent)); }
+  .bar-fill.risk-low { background: var(--green); }
+  .bar-fill.risk-mid { background: var(--amber); }
+  .bar-fill.risk-high { background: var(--red); }
+  .metric-value {
+    width: 42px; flex-shrink: 0; text-align: right;
+    font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+  }
+
+  .explanation {
+    font-size: 11.5px; color: var(--text-faint);
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--card-border);
+    line-height: 1.5;
+  }
+
+  .meta-row {
+    display: flex; justify-content: space-between;
+    font-size: 11.5px; color: var(--text-faint);
+    margin-top: 8px;
+  }
+  .meta-row span.v { color: var(--text-dim); font-family: var(--mono); }
+
+  .forecast-trend { display: inline-flex; align-items: center; gap: 3px; font-family: var(--mono); }
+  .forecast-trend.up { color: var(--green); }
+  .forecast-trend.down { color: var(--red); }
+  .forecast-trend.flat { color: var(--text-faint); }
+
+  .empty-state {
+    color: var(--text-faint);
+    font-size: 13px;
+    padding: 30px;
+    text-align: center;
+    border: 1px dashed var(--card-border);
+    border-radius: var(--radius);
+  }
+
+  .feed { display: flex; flex-direction: column; gap: 8px; }
+  .feed-item {
+    display: grid;
+    grid-template-columns: 90px 100px 120px 1fr;
+    gap: 12px;
+    align-items: baseline;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 12px;
+  }
+  .feed-item .time { color: var(--text-faint); font-family: var(--mono); font-size: 11px; }
+  .feed-item .agent { font-family: var(--mono); color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feed-item .rule { color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .action-pill {
+    font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 2px 8px; border-radius: 5px; width: fit-content;
+  }
+  .action-pill.isolate { background: rgba(249, 105, 122, 0.15); color: var(--red); }
+  .action-pill.reassign_leader { background: rgba(179, 157, 251, 0.15); color: var(--purple); }
+  .action-pill.redistribute_tasks { background: rgba(251, 191, 106, 0.15); color: var(--amber); }
+  .action-pill.flag_for_review { background: rgba(111, 179, 251, 0.15); color: var(--blue); }
+
+  .collusion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .pair-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+    padding: 13px 16px; font-size: 12px;
+  }
+  .pair-card.persisted { border-color: rgba(251, 191, 106, 0.45); }
+  .pair-title { font-family: var(--mono); font-weight: 600; margin-bottom: 8px; }
+  .signal-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .signal-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: #1b2130; color: var(--text-faint);
+  }
+  .signal-tag.elevated { background: rgba(251, 191, 106, 0.18); color: var(--amber); }
+
+  .fed-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+    padding: 16px 18px; display: flex; gap: 28px; flex-wrap: wrap;
+  }
+  .fed-stat .label { color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .fed-stat .value { font-family: var(--mono); font-size: 16px; margin-top: 3px; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>NeuroTrust Mesh</h1>
+      <span class="sub">live agent trust &amp; security overview</span>
+    </div>
+    <div class="status-line" id="status-line">connecting…</div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <h2 class="section">Agents</h2>
+  <div class="grid" id="agent-grid"></div>
+
+  <h2 class="section">Collusion Signals</h2>
+  <div id="collusion-panel"></div>
+
+  <h2 class="section">Federated Learning</h2>
+  <div id="fed-panel"></div>
+
+  <h2 class="section">Recent Decisions</h2>
+  <div class="feed" id="decision-feed"></div>
+
+<script>
+const REFRESH_MS = 4000;
+
+function fmtPct(x) {
+  if (x === null || x === undefined) return "—";
+  return Math.round(x * 100) + "%";
+}
+function fmtNum(x, d = 2) {
+  if (x === null || x === undefined) return "—";
+  return Number(x).toFixed(d);
+}
+function riskClass(x) {
+  if (x === null || x === undefined) return "risk-low";
+  if (x > 0.7) return "risk-high";
+  if (x > 0.4) return "risk-mid";
+  return "risk-low";
+}
+function timeAgo(iso) {
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return s + "s ago";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  return Math.floor(s / 3600) + "h ago";
+}
+function esc(s) {
+  const d = document.createElement("div");
+  d.innerText = s ?? "";
+  return d.innerHTML;
+}
+
+function renderStats(summary) {
+  const items = [
+    { label: "Agents", value: summary.total_agents, cls: "" },
+    { label: "Active", value: summary.active, cls: "green" },
+    { label: "Isolated", value: summary.isolated, cls: summary.isolated > 0 ? "red" : "" },
+    { label: "Leaders", value: summary.leaders, cls: "" },
+    { label: "Avg Trust", value: summary.avg_trust !== null ? fmtPct(summary.avg_trust) : "—", cls: "accent" },
+  ];
+  document.getElementById("stats").innerHTML = items.map(i => `
+    <div class="stat">
+      <div class="label">${i.label}</div>
+      <div class="value ${i.cls}">${i.value}</div>
+    </div>
+  `).join("");
+}
+
+function forecastTrend(agent) {
+  const f = agent.forecast;
+  const t = agent.trust;
+  if (!f || f.predicted_mean === undefined || !t) return `<span class="forecast-trend flat">— no forecast yet</span>`;
+  const diff = f.predicted_mean - t.trust_score;
+  if (Math.abs(diff) < 0.03) return `<span class="forecast-trend flat">→ ${fmtPct(f.predicted_mean)} steady</span>`;
+  if (diff > 0) return `<span class="forecast-trend up">↑ ${fmtPct(f.predicted_mean)} rising</span>`;
+  return `<span class="forecast-trend down">↓ ${fmtPct(f.predicted_mean)} falling</span>`;
+}
+
+function renderRecovery(agent) {
+  if (agent.status !== "isolated") return "";
+  const r = agent.recovery;
+  if (!r) {
+    return `<div class="meta-row"><span style="color:var(--text-faint)">recovery status unknown</span></div>`;
+  }
+  if (!r.risk_improving) {
+    return `<div class="meta-row"><span style="color:var(--red)">risk still elevated — no ETA yet</span></div>`;
+  }
+  const eta = Math.max(0, Math.round(r.eta_seconds));
+  return `<div class="meta-row"><span style="color:var(--green)">risk improving — reinstating in ~${eta}s</span></div>`;
+}
+
+function renderAgentCard(agent) {
+  const trust = agent.trust;
+  const sec = agent.security;
+  const risk = sec ? sec.combined_risk : null;
+
+  return `
+    <div class="card ${agent.status === 'isolated' ? 'isolated' : ''}">
+      <div class="card-head">
+        <span class="agent-id">${esc(agent.agent_id)}</span>
+        <div class="badges">
+          <span class="badge ${agent.role}">${agent.role}</span>
+          <span class="badge ${agent.status}">${agent.status}</span>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">Trust</span>
+        <div class="bar-track"><div class="bar-fill trust" style="width:${trust ? trust.trust_score * 100 : 0}%"></div></div>
+        <span class="metric-value">${trust ? fmtPct(trust.trust_score) : "—"}</span>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">Risk</span>
+        <div class="bar-track"><div class="bar-fill ${riskClass(risk)}" style="width:${risk ? risk * 100 : 0}%"></div></div>
+        <span class="metric-value">${risk !== null && risk !== undefined ? fmtPct(risk) : "—"}</span>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">Forecast</span>
+        <span style="font-size:12px; color:var(--text-dim);">${forecastTrend(agent)}</span>
+      </div>
+
+      <div class="meta-row">
+        <span>task <span class="v">${esc(agent.current_task) || "none"}</span></span>
+        <span>missed <span class="v">${agent.missed_beats}</span></span>
+      </div>
+
+      ${renderRecovery(agent)}
+
+      ${trust && trust.explanation ? `<div class="explanation">${esc(trust.explanation)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderReviewCard(review) {
+  return `
+    <div class="pair-card persisted">
+      <div class="pair-title">${review.group.map(esc).join(" ↔ ")}</div>
+      <div style="color:var(--amber)">flagged for human review · persisted ${review.windows_persisted} windows · severity ${fmtNum(review.group_severity, 2)}</div>
+      <div style="color:var(--text-faint); font-size:11px; margin-top:4px;">never auto-isolated on collusion alone — routed to Control Center</div>
+    </div>
+  `;
+}
+
+function renderCollusion(collusion) {
+  const persistedPairs = (collusion.pairs || []).filter(p => p.consecutive_hits > 0 || p.persisted);
+  const reviews = collusion.pending_reviews || [];
+  if (persistedPairs.length === 0 && reviews.length === 0) {
+    document.getElementById("collusion-panel").innerHTML = `<div class="empty-state">No elevated pairs right now.</div>`;
+    return;
+  }
+  const reviewCards = reviews.slice().reverse().map(renderReviewCard).join("");
+  const pairCards = persistedPairs.map(p => {
+    const scores = p.scores || {};
+    const tags = Object.entries(scores).map(([k, v]) => {
+      const elevated = v > 0.5;
+      return `<span class="signal-tag ${elevated ? 'elevated' : ''}">${k.replace(/_/g,' ')}: ${fmtNum(v, 2)}</span>`;
+    }).join("");
+    return `
+      <div class="pair-card ${p.persisted ? 'persisted' : ''}">
+        <div class="pair-title">${esc(p.pair[0])} ↔ ${esc(p.pair[1])}</div>
+        <div style="color:var(--text-faint)">consecutive windows: ${p.consecutive_hits}${p.persisted ? " · <span style='color:var(--amber)'>persisted</span>" : ""}</div>
+        <div class="signal-tags">${tags}</div>
+      </div>
+    `;
+  }).join("");
+  const reviewSection = reviewCards
+    ? `<div style="color:var(--text-faint); font-size:11px; margin-bottom:6px;">PENDING HUMAN REVIEW</div><div class="collusion-grid">${reviewCards}</div>`
+    : "";
+  document.getElementById("collusion-panel").innerHTML = `${reviewSection}<div class="collusion-grid">${pairCards}</div>`;
+}
+
+function renderFederatedModel(label, m) {
+  const last = (m.rounds || [])[m.rounds.length - 1];
+  return `
+    <div class="fed-card">
+      <div class="fed-stat"><div class="label">${label} Version</div><div class="value">${m.version}</div></div>
+      <div class="fed-stat"><div class="label">${label} Best Error</div><div class="value">${fmtNum(m.best_error, 4)}</div></div>
+      <div class="fed-stat"><div class="label">${label} Last Round</div><div class="value" style="color:${last && last.accepted ? 'var(--green)' : 'var(--red)'}">${last ? (last.accepted ? "accepted" : "rejected") : "—"}</div></div>
+    </div>
+  `;
+}
+
+function renderFederated(fed) {
+  if (!fed) {
+    document.getElementById("fed-panel").innerHTML = `<div class="empty-state">No aggregation rounds yet.</div>`;
+    return;
+  }
+  document.getElementById("fed-panel").innerHTML = `
+    ${renderFederatedModel("Autoencoder", fed.autoencoder)}
+    ${renderFederatedModel("GRU", fed.gru)}
+    <div class="fed-card">
+      <div class="fed-stat"><div class="label">Validation Samples</div><div class="value">${fed.validation_buffer_size}</div></div>
+    </div>
+  `;
+}
+
+function renderDecisions(decisions) {
+  if (!decisions || decisions.length === 0) {
+    document.getElementById("decision-feed").innerHTML = `<div class="empty-state">No decisions yet.</div>`;
+    return;
+  }
+  document.getElementById("decision-feed").innerHTML = decisions.map(d => `
+    <div class="feed-item">
+      <span class="time">${timeAgo(d.ts)}</span>
+      <span class="action-pill ${d.action}">${d.action.replace(/_/g,' ')}</span>
+      <span class="agent">${esc(d.agent_id)}</span>
+      <span class="rule">${esc(d.rule)}</span>
+    </div>
+  `).join("");
+}
+
+async function refresh() {
+  try {
+    const res = await fetch("/api/overview");
+    const data = await res.json();
+
+    renderStats(data.summary);
+
+    document.getElementById("agent-grid").innerHTML = data.agents.length
+      ? data.agents.map(renderAgentCard).join("")
+      : `<div class="empty-state">No agents registered yet.</div>`;
+
+    renderCollusion(data.collusion);
+    renderFederated(data.federated);
+    renderDecisions(data.recent_decisions);
+
+    document.getElementById("status-line").textContent = "updated " + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById("status-line").textContent = "connection lost — retrying…";
+  }
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>
